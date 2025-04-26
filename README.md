@@ -12,5 +12,6 @@ npx tsc --init
 ```
 
 ```
-23bbe6394d2e473ba0abd2b2ee91e099
+Default pass: 23bbe6394d2e473ba0abd2b2ee91e099
+dev dev123
 ```
