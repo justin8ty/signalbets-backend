@@ -6,4 +6,20 @@
 #   "options": ["React", "Vue", "Svelte"]
 # }
 
-GET http://localhost:3000/polls/b0f7e69e-6d36-496c-8415-7cdde04a3bb2
+# POST http://localhost:3000/polls
+# Content-Type: application/json
+
+# {
+#   "question": "What's one thing you wish you had more of?",
+#   "options": ["Money", "Fame", "Free time"]
+# }
+
+POST http://localhost:3000/polls/b0f7e69e-6d36-496c-8415-7cdde04a3bb2/vote
+Content-Type: application/json
+
+{
+  "optionId": "958bf083-6f87-443c-bd93-16c0f891a009"
+}
+
+
+# GET http://localhost:3000/polls/6f25bef6-fdf3-4d8d-8da3-d3f776d7ab5a
