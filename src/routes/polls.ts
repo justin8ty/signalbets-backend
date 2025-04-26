@@ -76,6 +76,87 @@ export async function pollRoutes(app: FastifyInstance) {
     }
   );
 
+  app.post(
+    "/polls/:id/vote",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["id"],
+          properties: {
+            id: { type: "string", format: "uuid" },
+          },
+        },
+        body: {
+          type: "object",
+          required: ["optionId"],
+          properties: {
+            optionId: { type: "string", format: "uuid" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id: pollId } = request.params as { id: string };
+      const { optionId } = request.body as { optionId: string };
+
+      const client = await app.pg.connect();
+
+      try {
+        await client.query("BEGIN");
+
+        // check poll and option exist
+        const optionCheck = await client.query(
+          `
+          SELECT id FROM options
+          WHERE id = $1 AND poll_id = $2
+          `,
+          [optionId, pollId]
+        );
+        if (optionCheck.rowCount === 0) {
+          await client.query("ROLLBACK");
+          return reply
+            .code(400)
+            .send({ message: "Invalid option for this poll." });
+        }
+
+        // insert vote
+        await client.query(
+          `
+          INSERT INTO votes (poll_id, option_id)
+          VALUES ($1, $2)
+          `,
+          [pollId, optionId]
+        );
+
+        await client.query(
+          `
+          UPDATE options
+          SET vote_count = vote_count + 1
+          WHERE id = $1
+          `,
+          [optionId]
+        );
+
+        await client.query("COMMIT");
+        return reply.code(200).send({ message: "Vote cast successfully." });
+      } catch (error: any) {
+        await client.query("ROLLBACK");
+
+        // for duplicate vote
+        if (error.code === "23505") {
+          return reply
+            .code(400)
+            .send({ message: "Already voted in this poll." });
+        }
+
+        throw error;
+      } finally {
+        client.release();
+      }
+    }
+  );
+
   app.get(
     "/polls/:id",
     {
