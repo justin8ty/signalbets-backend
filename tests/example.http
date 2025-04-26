@@ -1,7 +1,9 @@
-POST http://localhost:3000/polls
-Content-Type: application/json
+# POST http://localhost:3000/polls
+# Content-Type: application/json
 
-{
-  "question": "Best frontend framework?",
-  "options": ["React", "Vue", "Svelte"]
-}
+# {
+#   "question": "Best frontend framework?",
+#   "options": ["React", "Vue", "Svelte"]
+# }
+
+GET http://localhost:3000/polls/b0f7e69e-6d36-496c-8415-7cdde04a3bb2
