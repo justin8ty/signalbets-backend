@@ -1,12 +1,27 @@
 import Fastify from "fastify";
 import { request } from "http";
+import dbPlugin from "./plugins/db";
+import dotenv from "dotenv";
+import fastifyPostgres from "@fastify/postgres";
+
+dotenv.config();
 
 const app = Fastify({
   logger: true,
 });
 
+app.register(fastifyPostgres, {
+  connectionString: process.env.DATABASE_URL, // or whatever your local db connection is
+});
+
 app.get("/", async (request, reply) => {
-  return { hello: "world" };
+  const client = await app.pg.connect();
+  try {
+    const { rows } = await client.query("SELECT NOW()");
+    return { server_time: rows[0].now };
+  } finally {
+    client.release();
+  }
 });
 
 const start = async () => {
