@@ -60,7 +60,7 @@ export async function pollRoutes(app: FastifyInstance) {
             INSERT INTO options (poll_id, text)
             VALUES ($1, $2)
             `,
-            [pollId, question]
+            [pollId, option]
           );
         }
 
