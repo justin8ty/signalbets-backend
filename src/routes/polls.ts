@@ -1,4 +1,5 @@
 import { FastifyInstance } from "fastify";
+import { request } from "http";
 
 export async function pollRoutes(app: FastifyInstance) {
   app.post(
@@ -69,6 +70,48 @@ export async function pollRoutes(app: FastifyInstance) {
       } catch (err) {
         await client.query("ROLLBACK");
         throw err;
+      } finally {
+        client.release();
+      }
+    }
+  );
+
+  app.get(
+    "/polls/:id",
+    {
+      schema: {
+        params: {
+          type: "object",
+          properties: {
+            id: { type: "string", format: "uuid" },
+          },
+          required: ["id"],
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: number };
+      const client = await app.pg.connect();
+
+      try {
+        const pollResult = await client.query(
+          "SELECT id, question FROM polls WHERE id = $1",
+          [id]
+        );
+        if (pollResult.rowCount === 0) {
+          return reply.code(404).send({ message: "Poll not found." });
+        }
+
+        const optionsResult = await client.query(
+          "SELECT id, text FROM options WHERE poll_id = $1",
+          [id]
+        );
+
+        return {
+          id: pollResult.rows[0].id,
+          question: pollResult.rows[0].question,
+          options: optionsResult.rows,
+        };
       } finally {
         client.release();
       }
