@@ -3,6 +3,7 @@ import { request } from "http";
 import dbPlugin from "./plugins/db";
 import dotenv from "dotenv";
 import fastifyPostgres from "@fastify/postgres";
+import { pollRoutes } from "./routes/polls";
 
 dotenv.config();
 
@@ -10,8 +11,10 @@ const app = Fastify({
   logger: true,
 });
 
+app.register(pollRoutes);
+
 app.register(fastifyPostgres, {
-  connectionString: process.env.DATABASE_URL, // or whatever your local db connection is
+  connectionString: process.env.DATABASE_URL,
 });
 
 app.get("/", async (request, reply) => {
