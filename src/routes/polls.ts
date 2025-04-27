@@ -198,4 +198,31 @@ export async function pollRoutes(app: FastifyInstance) {
       }
     }
   );
+
+  app.get(
+    "/polls/:id/results",
+    {
+      schema: {
+        params: {
+          type: "object",
+          properties: {
+            id: { type: "string", format: "uuid" },
+          },
+          required: ["id"],
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const client = await app.pg.connect();
+
+      try {
+        const pollResult = await client.query();
+
+        return reply.send(pollResult.rows);
+      } finally {
+        client.release();
+      }
+    }
+  );
 }
