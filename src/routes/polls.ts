@@ -236,6 +236,10 @@ export async function pollRoutes(app: FastifyInstance) {
           [id]
         );
 
+        if (pollResult.rowCount === 0) {
+          return reply.code(404).send({ message: "Poll not found." });
+        }
+
         return reply.send(pollResult.rows);
       } finally {
         client.release();
