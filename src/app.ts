@@ -1,6 +1,4 @@
 import Fastify from "fastify";
-import { request } from "http";
-import dbPlugin from "./plugins/db";
 import dotenv from "dotenv";
 import fastifyPostgres from "@fastify/postgres";
 import { pollRoutes } from "./routes/polls";
