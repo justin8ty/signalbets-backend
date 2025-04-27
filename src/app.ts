@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import fastifyPostgres from "@fastify/postgres";
 import { pollRoutes } from "./routes/polls";
 import fastifyWebsocket from "@fastify/websocket";
+import websocketPlugin from "./plugins/websocket";
 
 dotenv.config();
 
@@ -15,6 +16,8 @@ const app = Fastify({
 app.register(pollRoutes);
 
 app.register(fastifyWebsocket);
+
+app.register(websocketPlugin);
 
 app.register(fastifyPostgres, {
   connectionString: process.env.DATABASE_URL,

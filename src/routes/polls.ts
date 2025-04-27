@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { request } from "http";
+import { FastifyRequest } from "fastify";
 
 export async function pollRoutes(app: FastifyInstance) {
   app.post(
@@ -140,19 +141,6 @@ export async function pollRoutes(app: FastifyInstance) {
         );
 
         await client.query("COMMIT");
-
-        // notify websocket
-        app.websocketServer.clients.forEach((client) => {
-          if (client.readyState === client.OPEN) {
-            client.send(
-              JSON.stringify({
-                pollId: pollId,
-                optionId: optionId,
-                message: "Vote cast.",
-              })
-            );
-          }
-        });
 
         return reply.code(200).send({ message: "Vote cast successfully." });
       } catch (error: any) {
