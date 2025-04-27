@@ -35,6 +35,7 @@ export async function pollRoutes(app: FastifyInstance) {
         options: string[];
       };
 
+      // check duplicate
       const uniqueOptions = new Set(options);
       if (uniqueOptions.size !== options.length) {
         return reply.status(400).send({ message: "Options must be unique." });
@@ -157,6 +158,7 @@ export async function pollRoutes(app: FastifyInstance) {
     }
   );
 
+  // fetch poll
   app.get(
     "/polls/:id",
     {
@@ -199,6 +201,7 @@ export async function pollRoutes(app: FastifyInstance) {
     }
   );
 
+  // fetch results
   app.get(
     "/polls/:id/results",
     {
@@ -217,7 +220,21 @@ export async function pollRoutes(app: FastifyInstance) {
       const client = await app.pg.connect();
 
       try {
-        const pollResult = await client.query();
+        const pollResult = await client.query(
+          `
+        SELECT p.id, p.question, o.id AS option_id, o.text, COALESCE(v.vote_count, 0) AS vote_count
+        FROM polls p
+        LEFT JOIN options o ON p.id = o.poll_id
+        LEFT JOIN (
+          SELECT option_id, COUNT(*) AS vote_count
+          FROM votes
+          WHERE poll_id = $1
+          GROUP BY option_id
+        ) v ON o.id = v.option_id
+        WHERE p.id = $1
+        `,
+          [id]
+        );
 
         return reply.send(pollResult.rows);
       } finally {
