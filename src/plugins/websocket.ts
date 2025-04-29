@@ -1,19 +1,34 @@
 import fp from "fastify-plugin";
 import { FastifyPluginAsync } from "fastify";
 
+declare module "fastify" {
+  interface FastifyInstance {
+    pollClients: Map<string, Set<WebSocket>>;
+  }
+}
+
 const websocketPlugin: FastifyPluginAsync = async (app) => {
+  const pollClients = new Map<string, Set<any>>(); // pollId => Set of sockets
+
+  app.decorate("pollClients", pollClients);
+
   app.get("/ws/:pollId", { websocket: true }, (connection, req) => {
     const { pollId } = req.params as { pollId: string };
-    console.log("WebSocket client connected for poll:", pollId);
 
-    // Listen for messages directly on connection
-    connection.on("message", (message: Buffer) => {
-      console.log("Received message from client:", message.toString());
+    if (!pollClients.has(pollId)) {
+      pollClients.set(pollId, new Set());
+    }
+
+    pollClients.get(pollId)!.add(connection.socket);
+    console.log(`Client connected to poll ${pollId}`);
+
+    connection.socket.send(`Connected to poll ${pollId}`);
+
+    connection.socket.on("close", () => {
+      pollClients.get(pollId)?.delete(connection.socket);
+      console.log(`Client disconnected from poll ${pollId}`);
     });
-
-    // Send a welcome message back to the client
-    connection.send(`Connected to poll ${pollId}`);
   });
 };
 
-export default websocketPlugin;
+export default fp(websocketPlugin);

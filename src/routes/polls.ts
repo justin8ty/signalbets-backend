@@ -142,6 +142,32 @@ export async function pollRoutes(app: FastifyInstance) {
 
         await client.query("COMMIT");
 
+        // Broadcast updated results to connected WebSocket clients
+        const pollClients = app.pollClients as Map<string, Set<any>>;
+
+        if (pollClients.has(pollId)) {
+          const result = await client.query(
+            `
+            SELECT o.id, o.text, o.vote_count
+            FROM options o
+            WHERE o.poll_id = $1
+            `,
+            [pollId]
+          );
+
+          const updatePayload = JSON.stringify({
+            type: "voteUpdate",
+            pollId,
+            results: result.rows,
+          });
+
+          for (const socket of pollClients.get(pollId)!) {
+            if (socket.readyState === 1) {
+              socket.send(updatePayload);
+            }
+          }
+        }
+
         return reply.code(200).send({ message: "Vote cast successfully." });
       } catch (error: any) {
         await client.query("ROLLBACK");
