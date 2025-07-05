@@ -14,6 +14,11 @@ const websocketPlugin: FastifyPluginAsync = async (app) => {
 
   app.get("/ws/:pollId", { websocket: true }, (connection, req) => {
     const { pollId } = req.params as { pollId: string };
+    const { socket } = connection;
+    if (!socket || typeof socket.send !== "function") {
+      console.error("❌ Not a WebSocket connection or send is unavailable.");
+      return;
+    }
 
     if (!pollClients.has(pollId)) {
       pollClients.set(pollId, new Set());
