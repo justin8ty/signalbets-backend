@@ -1,8 +1,9 @@
 import fp from "fastify-plugin";
-import fastify, { FastifyPluginAsync } from "fastify";
+import { FastifyPluginAsync } from "fastify";
+import fastifyPostgres from "@fastify/postgres";
 
 const dbPlugin: FastifyPluginAsync = async (fastify, opts) => {
-  fastify.register(require("@fastify/postgres"), {
+  await fastify.register(fastifyPostgres, {
     connectionString: process.env.DATABASE_URL,
   });
 };

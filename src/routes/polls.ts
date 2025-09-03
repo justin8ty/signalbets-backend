@@ -1,5 +1,4 @@
 import { FastifyInstance } from "fastify";
-import { request } from "http";
 
 export async function pollRoutes(app: FastifyInstance) {
   app.post(
@@ -173,7 +172,7 @@ export async function pollRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: number };
+      const { id } = request.params as { id: string };
       const client = await app.pg.connect();
 
       try {

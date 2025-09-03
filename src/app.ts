@@ -1,8 +1,6 @@
 import Fastify from "fastify";
-import { request } from "http";
 import dbPlugin from "./plugins/db";
 import dotenv from "dotenv";
-import fastifyPostgres from "@fastify/postgres";
 import { pollRoutes } from "./routes/polls";
 
 dotenv.config();
@@ -11,11 +9,11 @@ const app = Fastify({
   logger: true,
 });
 
-app.register(pollRoutes);
+// Register plugins first
+app.register(dbPlugin);
 
-app.register(fastifyPostgres, {
-  connectionString: process.env.DATABASE_URL,
-});
+// Register routes after plugins
+app.register(pollRoutes);
 
 app.get("/", async (request, reply) => {
   const client = await app.pg.connect();
