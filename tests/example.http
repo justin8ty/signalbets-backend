@@ -1,0 +1,63 @@
+### Create poll
+POST http://localhost:3000/polls
+Content-Type: application/json
+
+{
+  "question": "Best frontend framework?",
+  "options": ["React", "Vue", "Svelte"]
+}
+
+### Create poll
+POST http://localhost:3000/polls
+Content-Type: application/json
+
+{
+  "question": "What's one thing you wish you had more of?",
+  "options": ["Money", "Fame", "Free time"]
+}
+
+### Vote on a poll
+POST http://localhost:3000/polls/2a0b9020-67ed-4f59-bdf1-9d0a7b83bfba/vote
+Content-Type: application/json
+
+{
+  "optionId": "919db17c-ac2b-4184-a3d7-90e810fa3af5"
+}
+
+### Get poll by ID
+GET http://localhost:3000/polls/50dda539-3fdd-47fe-9d02-52ffd3f48b97
+
+
+### Register a new user
+POST http://localhost:3000/register
+Content-Type: application/json
+
+{
+  "username": "test",
+  "password": "test123"
+}
+
+### Login as the new user
+# @name login
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+  "username": "test",
+  "password": "test123"
+}
+
+### Create a poll
+# @name createPoll
+POST http://localhost:3000/polls
+Content-Type: application/json
+
+{
+  "question": "What is your favorite color?",
+  "options": ["Pink", "Yellow", "Orange"]
+}
+
+### Delete a poll
+@token = {{login.response.body.token}}
+DELETE http://localhost:3000/polls/{{createPoll.response.body.pollId}}
+Authorization: Bearer {{token}}
