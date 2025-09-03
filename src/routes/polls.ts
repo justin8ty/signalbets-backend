@@ -139,6 +139,9 @@ export async function pollRoutes(app: FastifyInstance) {
         );
 
         await client.query("COMMIT");
+
+        await client.query(`NOTIFY poll_votes, '${pollId}'`);
+
         return reply.code(200).send({ message: "Vote cast successfully." });
       } catch (error: any) {
         await client.query("ROLLBACK");
@@ -152,6 +155,57 @@ export async function pollRoutes(app: FastifyInstance) {
 
         throw error;
       } finally {
+        client.release();
+      }
+    }
+  );
+
+  app.get(
+    "/polls/:id/results/ws",
+    { websocket: true },
+    async (connection, req) => {
+      const { id: pollId } = req.params as { id: string };
+      const client = await app.pg.connect();
+
+      const onNotification = async (msg: any) => {
+        if (msg.payload === pollId) {
+          const pollResult = await client.query(
+            `
+            SELECT p.id, p.question, o.id AS option_id, o.text, o.vote_count
+            FROM polls p
+            JOIN options o ON p.id = o.poll_id
+            WHERE p.id = $1
+            ORDER BY o.created_at ASC
+            `,
+            [pollId]
+          );
+          connection.send(JSON.stringify(pollResult.rows));
+        }
+      };
+
+      try {
+        await client.query("LISTEN poll_votes");
+        client.on("notification", onNotification);
+
+        // send current results on connection
+        const initialResult = await client.query(
+          `
+          SELECT p.id, p.question, o.id AS option_id, o.text, o.vote_count
+          FROM polls p
+          JOIN options o ON p.id = o.poll_id
+          WHERE p.id = $1
+          ORDER BY o.created_at ASC
+          `,
+          [pollId]
+        );
+        connection.send(JSON.stringify(initialResult.rows));
+
+        connection.on("close", async () => {
+          await client.query("UNLISTEN poll_votes");
+          client.release();
+        });
+      } catch (e) {
+        req.log.error(e, `An error occurred in the WebSocket route for pollId: ${pollId}`);
         client.release();
       }
     }

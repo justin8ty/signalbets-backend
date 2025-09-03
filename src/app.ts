@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import dbPlugin from "./plugins/db";
 import dotenv from "dotenv";
 import { pollRoutes } from "./routes/polls";
+import websocket from "@fastify/websocket";
 
 dotenv.config();
 
@@ -9,10 +10,9 @@ const app = Fastify({
   logger: true,
 });
 
-// Register plugins first
 app.register(dbPlugin);
+app.register(websocket);
 
-// Register routes after plugins
 app.register(pollRoutes);
 
 app.get("/", async (request, reply) => {
