@@ -299,4 +299,52 @@ export async function pollRoutes(app: FastifyInstance) {
       }
     }
   );
+
+  app.delete(
+    "/polls/:id",
+    {
+      preHandler: [async (request, reply) => {
+        try {
+          await request.jwtVerify();
+          if (request.user.role !== 'admin') {
+            reply.code(403).send({ message: 'Forbidden' });
+          }
+        } catch (err) {
+          reply.code(401).send({ message: 'Unauthorized' });
+        }
+      }],
+      schema: {
+        params: {
+          type: "object",
+          properties: {
+            id: { type: "string", format: "uuid" },
+          },
+          required: ["id"],
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const client = await app.pg.connect();
+
+      try {
+        await client.query("BEGIN");
+        await client.query("DELETE FROM votes WHERE poll_id = $1", [id]);
+        await client.query("DELETE FROM options WHERE poll_id = $1", [id]);
+        const result = await client.query("DELETE FROM polls WHERE id = $1", [id]);
+        await client.query("COMMIT");
+
+        if (result.rowCount === 0) {
+          return reply.code(404).send({ message: "Poll not found." });
+        }
+
+        return reply.code(204).send();
+      } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+      } finally {
+        client.release();
+      }
+    }
+  );
 }

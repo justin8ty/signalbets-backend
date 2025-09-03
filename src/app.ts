@@ -2,7 +2,9 @@ import Fastify from "fastify";
 import dbPlugin from "./plugins/db";
 import dotenv from "dotenv";
 import { pollRoutes } from "./routes/polls";
+import { authRoutes } from "./routes/auth";
 import websocket from "@fastify/websocket";
+import jwt from "@fastify/jwt";
 
 dotenv.config();
 
@@ -13,6 +15,11 @@ const app = Fastify({
 app.register(dbPlugin);
 app.register(websocket);
 
+app.register(jwt, {
+  secret: process.env.JWT_SECRET!,
+});
+
+app.register(authRoutes);
 app.register(pollRoutes);
 
 app.get("/", async (request, reply) => {
