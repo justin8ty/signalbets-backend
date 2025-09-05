@@ -12,20 +12,21 @@ POST http://localhost:3000/polls
 Content-Type: application/json
 
 {
-  "question": "What's one thing you wish you had more of?",
-  "options": ["Money", "Fame", "Free time"]
+  "question": "What's three thing you dont have?",
+  "options": ["Yo", "Lo", "Ma"]
 }
 
 ### Vote on a poll
-POST http://localhost:3000/polls/2a0b9020-67ed-4f59-bdf1-9d0a7b83bfba/vote
+POST http://localhost:3000/polls/e400b7bd-7c85-4dfd-8a9b-ff44792499a7/vote
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "optionId": "919db17c-ac2b-4184-a3d7-90e810fa3af5"
+  "optionId": "be31a706-d7f8-4fe0-8f66-92f7ac63cd6e"
 }
 
 ### Get poll by ID
-GET http://localhost:3000/polls/50dda539-3fdd-47fe-9d02-52ffd3f48b97
+GET http://localhost:3000/polls/6900b944-82db-4552-b8d6-75a70f586b2e
 
 
 ### Register a new user
