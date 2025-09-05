@@ -79,6 +79,13 @@ export async function pollRoutes(app: FastifyInstance) {
   app.post(
     "/polls/:id/vote",
     {
+      preHandler: [async (request, reply) => {
+        try {
+          await request.jwtVerify();
+        } catch (err) {
+          reply.code(401).send({ message: 'Unauthorized' });
+        }
+      }],
       schema: {
         params: {
           type: "object",
@@ -99,6 +106,7 @@ export async function pollRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id: pollId } = request.params as { id: string };
       const { optionId } = request.body as { optionId: string };
+      const userId = request.user.id;
 
       const client = await app.pg.connect();
 
@@ -123,10 +131,10 @@ export async function pollRoutes(app: FastifyInstance) {
         // insert vote
         await client.query(
           `
-          INSERT INTO votes (poll_id, option_id)
-          VALUES ($1, $2)
+          INSERT INTO votes (poll_id, option_id, user_id)
+          VALUES ($1, $2, $3)
           `,
-          [pollId, optionId]
+          [pollId, optionId, userId]
         );
 
         await client.query(
