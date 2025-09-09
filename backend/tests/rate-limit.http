@@ -1,0 +1,11 @@
+# Test Poll Creation Rate Limit (5 per hour)
+# Send this request 6 times in a row.
+# The 6th request should fail with a 429 "Too Many Requests" error.
+
+POST http://localhost:3000/polls
+Content-Type: application/json
+
+{
+  "question": "Which of?",
+  "options": ["CC", "AA", "BB"]
+}
