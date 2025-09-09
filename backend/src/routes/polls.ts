@@ -4,6 +4,12 @@ export async function pollRoutes(app: FastifyInstance) {
   app.post(
     "/polls",
     {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: "1 hour",
+        },
+      },
       schema: {
         body: {
           type: "object",
@@ -79,6 +85,12 @@ export async function pollRoutes(app: FastifyInstance) {
   app.post(
     "/polls/:id/vote",
     {
+      config: {
+        rateLimit: {
+          max: 5,
+          timeWindow: "1 minute",
+        },
+      },
       preHandler: [async (request, reply) => {
         try {
           await request.jwtVerify();
@@ -311,6 +323,13 @@ export async function pollRoutes(app: FastifyInstance) {
   app.delete(
     "/polls/:id",
     {
+      config: {
+        rateLimit: {
+          max: 50,
+          timeWindow: "1 minute",
+          keyGenerator: (request: any) => request.user.id,
+        },
+      },
       preHandler: [async (request, reply) => {
         try {
           await request.jwtVerify();
@@ -355,4 +374,47 @@ export async function pollRoutes(app: FastifyInstance) {
       }
     }
   );
+
+  app.get("/polls", {
+    schema: {
+      querystring: {
+        type: "object",
+        properties: {
+          page: { type: "integer", minimum: 1, default: 1 },
+          limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { page, limit } = request.query as { page: number; limit: number };
+    const offset = (page - 1) * limit;
+
+    const client = await app.pg.connect();
+    try {
+      const totalResult = await client.query("SELECT COUNT(*) FROM polls");
+      const total = parseInt(totalResult.rows[0].count, 10);
+
+      const pollsResult = await client.query(
+        `
+        SELECT id, question, created_at
+        FROM polls
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2
+        `,
+        [limit, offset]
+      );
+
+      return {
+        polls: pollsResult.rows,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit),
+        },
+      };
+    } finally {
+      client.release();
+    }
+  });
 }

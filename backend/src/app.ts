@@ -5,6 +5,7 @@ import { pollRoutes } from "./routes/polls";
 import { authRoutes } from "./routes/auth";
 import websocket from "@fastify/websocket";
 import jwt from "@fastify/jwt";
+import rateLimit from "@fastify/rate-limit";
 
 dotenv.config();
 
@@ -14,6 +15,11 @@ const app = Fastify({
 
 app.register(dbPlugin);
 app.register(websocket);
+
+app.register(rateLimit, {
+  max: 100,
+  timeWindow: "1 minute",
+});
 
 app.register(jwt, {
   secret: process.env.JWT_SECRET!,
