@@ -190,19 +190,47 @@ export async function pollRoutes(app: FastifyInstance) {
       const { id: pollId } = req.params as { id: string };
       const client = await app.pg.connect();
 
-      const onNotification = async (msg: any) => {
-        if (msg.payload === pollId) {
-          const pollResult = await client.query(
+      const sendResults = async () => {
+        try {
+          type PollResultRow = {
+            option_id: string;
+            vote_count: string;
+          };
+
+          const pollResult = await client.query<PollResultRow>(
             `
-            SELECT p.id, p.question, o.id AS option_id, o.text, o.vote_count
-            FROM polls p
-            JOIN options o ON p.id = o.poll_id
-            WHERE p.id = $1
+            SELECT o.id as option_id, o.vote_count
+            FROM options o
+            WHERE o.poll_id = $1
             ORDER BY o.created_at ASC
             `,
             [pollId]
           );
-          connection.send(JSON.stringify(pollResult.rows));
+
+          const results = pollResult.rows.reduce((acc: Record<string, number>, row: PollResultRow) => {
+            acc[row.option_id] = parseInt(row.vote_count, 10) || 0;
+            return acc;
+          }, {});
+
+          const total_votes = pollResult.rows.reduce((acc: number, row: PollResultRow) => acc + (parseInt(row.vote_count, 10) || 0), 0);
+
+          const payload = {
+            type: "VOTE_UPDATE",
+            poll_id: pollId,
+            results: results,
+            total_votes: total_votes,
+            timestamp: new Date().toISOString(),
+          };
+
+          connection.send(JSON.stringify(payload));
+        } catch (e) {
+          req.log.error(e, `Failed to send results for pollId: ${pollId}`);
+        }
+      };
+
+      const onNotification = (msg: any) => {
+        if (msg.payload === pollId) {
+          sendResults();
         }
       };
 
@@ -211,20 +239,10 @@ export async function pollRoutes(app: FastifyInstance) {
         client.on("notification", onNotification);
 
         // send current results on connection
-        const initialResult = await client.query(
-          `
-          SELECT p.id, p.question, o.id AS option_id, o.text, o.vote_count
-          FROM polls p
-          JOIN options o ON p.id = o.poll_id
-          WHERE p.id = $1
-          ORDER BY o.created_at ASC
-          `,
-          [pollId]
-        );
-        connection.send(JSON.stringify(initialResult.rows));
+        await sendResults();
 
-        connection.on("close", async () => {
-          await client.query("UNLISTEN poll_votes");
+        connection.socket.on("close", () => {
+          client.removeListener("notification", onNotification);
           client.release();
         });
       } catch (e) {
