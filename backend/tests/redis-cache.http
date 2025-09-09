@@ -1,0 +1,89 @@
+# Test Redis Caching with REST Client
+# Run these requests in sequence by clicking "Send Request" above each one.
+# Watch your backend server logs to see the cache status messages.
+
+# Prerequisite: 
+# 1. Your backend server is running (`npm run dev`)
+# 2. You have a Redis server running locally.
+# 3. You have a .env file in `/backend` with REDIS_URL=redis://localhost:6379
+
+###
+
+# @name registerUser
+# 1. Register a new user for testing
+POST http://localhost:3000/register
+Content-Type: application/json
+
+{
+    "username": "cacher-{{$randomInt}}",
+    "password": "password123"
+}
+
+###
+
+# @name loginUser
+# 2. Login and save the authentication token
+POST http://localhost:3000/login
+Content-Type: application/json
+
+{
+    "username": "{{registerUser.response.body.$.username}}",
+    "password": "password123"
+}
+
+@token = {{loginUser.response.body.$.token}}
+
+###
+
+# @name createPoll
+# 3. Create a new poll and save its ID
+POST http://localhost:3000/polls
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "question": "Is this cache test easy?",
+    "options": ["Yes", "Definitely"]
+}
+
+@pollId = {{createPoll.response.body.$.pollId}}
+
+###
+
+# @name getPollDetails
+# 4. Get the poll details to find a valid option ID
+GET http://localhost:3000/polls/{{pollId}}
+Authorization: Bearer {{token}}
+
+@optionId = {{getPollDetails.response.body.options[0].id}}
+
+###
+
+# 5. First Request: CACHE MISS
+# Check your server logs after this request. You should see "Cache Miss".
+GET http://localhost:3000/polls/{{pollId}}/results
+
+###
+
+# 6. Second Request: CACHE HIT
+# Check your server logs again. You should see "Cache Hit".
+GET http://localhost:3000/polls/{{pollId}}/results
+
+###
+
+# @name voteOnPoll
+# 7. Vote on the poll to invalidate the cache
+# Check your server logs. You should see "Cache invalidated".
+POST http://localhost:3000/polls/{{pollId}}/vote
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "optionId": "{{optionId}}"
+}
+
+###
+
+# 8. Third Request: CACHE MISS AGAIN
+# Check your server logs. You should see a "Cache Miss" because the cache was cleared.
+GET http://localhost:3000/polls/{{pollId}}/results
