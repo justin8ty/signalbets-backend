@@ -162,6 +162,9 @@ export async function pollRoutes(app: FastifyInstance) {
 
         await client.query(`NOTIFY poll_votes, '${pollId}'`);
 
+        await app.redis.del(`poll-results:${pollId}`);
+        app.log.info({ pollId }, "Cache invalidated");
+
         return reply.code(200).send({ message: "Vote cast successfully." });
       } catch (error: any) {
         await client.query("ROLLBACK");
@@ -290,32 +293,48 @@ export async function pollRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
-      const client = await app.pg.connect();
+      const cacheKey = `poll-results:${id}`;
 
       try {
-        const pollResult = await client.query(
-          `
-        SELECT p.id, p.question, o.id AS option_id, o.text, COALESCE(v.vote_count, 0) AS vote_count
-        FROM polls p
-        LEFT JOIN options o ON p.id = o.poll_id
-        LEFT JOIN (
-          SELECT option_id, COUNT(*) AS vote_count
-          FROM votes
-          WHERE poll_id = $1
-          GROUP BY option_id
-        ) v ON o.id = v.option_id
-        WHERE p.id = $1
-        `,
-          [id]
-        );
-
-        if (pollResult.rowCount === 0) {
-          return reply.code(404).send({ message: "Poll not found." });
+        const cachedResults = await app.redis.get(cacheKey);
+        if (cachedResults) {
+          app.log.info({ pollId: id }, "Cache Hit");
+          return reply.send(JSON.parse(cachedResults));
         }
 
-        return reply.send(pollResult.rows);
-      } finally {
-        client.release();
+        app.log.info({ pollId: id }, "Cache Miss");
+        const client = await app.pg.connect();
+        try {
+          const pollResult = await client.query(
+            `
+            SELECT p.id, p.question, o.id AS option_id, o.text, COALESCE(v.vote_count, 0) AS vote_count
+            FROM polls p
+            LEFT JOIN options o ON p.id = o.poll_id
+            LEFT JOIN (
+              SELECT option_id, COUNT(*) AS vote_count
+              FROM votes
+              WHERE poll_id = $1
+              GROUP BY option_id
+            ) v ON o.id = v.option_id
+            WHERE p.id = $1
+            `,
+            [id]
+          );
+
+          if (pollResult.rowCount === 0) {
+            return reply.code(404).send({ message: "Poll not found." });
+          }
+
+          const results = pollResult.rows;
+          await app.redis.set(cacheKey, JSON.stringify(results), "EX", 30);
+
+          return reply.send(results);
+        } finally {
+          client.release();
+        }
+      } catch (error) {
+        app.log.error(error, "Error fetching poll results");
+        throw error;
       }
     }
   );

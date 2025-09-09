@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import dbPlugin from "./plugins/db";
+import redisPlugin from "./plugins/redis";
 import dotenv from "dotenv";
 import { pollRoutes } from "./routes/polls";
 import { authRoutes } from "./routes/auth";
@@ -14,6 +15,7 @@ const app = Fastify({
 });
 
 app.register(dbPlugin);
+app.register(redisPlugin);
 app.register(websocket);
 
 app.register(rateLimit, {
