@@ -162,8 +162,8 @@ export async function pollRoutes(app: FastifyInstance) {
 
         await client.query(`NOTIFY poll_votes, '${pollId}'`);
 
-        await app.redis.del(`poll-results:${pollId}`);
-        app.log.info({ pollId }, "Cache invalidated");
+        // await app.redis.del(`poll-results:${pollId}`);
+        // app.log.info({ pollId }, "Cache invalidated");
 
         return reply.code(200).send({ message: "Vote cast successfully." });
       } catch (error: any) {
@@ -310,17 +310,17 @@ export async function pollRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const cacheKey = `poll-results:${id}`;
+      // const { id } = request.params as { id: string };
+      // const cacheKey = `poll-results:${id}`;
 
-      try {
-        const cachedResults = await app.redis.get(cacheKey);
-        if (cachedResults) {
-          app.log.info({ pollId: id }, "Cache Hit");
-          return reply.send(JSON.parse(cachedResults));
-        }
+      // try {
+      //   const cachedResults = await app.redis.get(cacheKey);
+      //   if (cachedResults) {
+      //     app.log.info({ pollId: id }, "Cache Hit");
+      //     return reply.send(JSON.parse(cachedResults));
+      //   }
 
-        app.log.info({ pollId: id }, "Cache Miss");
+      //   app.log.info({ pollId: id }, "Cache Miss");
         const client = await app.pg.connect();
         try {
           const pollResult = await client.query(
@@ -336,7 +336,7 @@ export async function pollRoutes(app: FastifyInstance) {
             ) v ON o.id = v.option_id
             WHERE p.id = $1
             `,
-            [id]
+            [(request.params as { id: string }).id]
           );
 
           if (pollResult.rowCount === 0) {
@@ -344,16 +344,16 @@ export async function pollRoutes(app: FastifyInstance) {
           }
 
           const results = pollResult.rows;
-          await app.redis.set(cacheKey, JSON.stringify(results), "EX", 30);
+          // await app.redis.set(cacheKey, JSON.stringify(results), "EX", 30);
 
           return reply.send(results);
         } finally {
           client.release();
         }
-      } catch (error) {
-        app.log.error(error, "Error fetching poll results");
-        throw error;
-      }
+      // } catch (error) {
+      //   app.log.error(error, "Error fetching poll results");
+      //   throw error;
+      // }
     }
   );
 

@@ -9,13 +9,13 @@ declare module 'fastify' {
 }
 
 async function redisPlugin(app: FastifyInstance) {
-  const redis = new Redis(process.env.REDIS_URL!);
+  // const redis = new Redis(process.env.REDIS_URL!);
 
-  app.decorate('redis', redis);
+  // app.decorate('redis', redis);
 
-  app.addHook('onClose', (instance, done) => {
-    instance.redis.quit(done);
-  });
+  // app.addHook('onClose', async (instance) => {
+  //   await instance.redis.quit();
+  // });
 }
 
 export default fp(redisPlugin);
