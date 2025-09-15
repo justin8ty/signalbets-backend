@@ -1,11 +1,12 @@
 
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
 	const fetchPoll = async () => {
 		try {
-			const res = await fetch(`http://localhost:3000/polls/${params.id}`);
+			const res = await fetch(`${PUBLIC_API_URL}/polls/${params.id}`);
 			if (!res.ok) {
 				throw error(res.status, 'Poll not found');
 			}
@@ -17,7 +18,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 
 	const fetchResults = async () => {
 		try {
-			const res = await fetch(`http://localhost:3000/polls/${params.id}/results`);
+			const res = await fetch(`${PUBLIC_API_URL}/polls/${params.id}/results`);
 			if (!res.ok) {
 				return {}; // Return empty if no results yet
 			}
@@ -46,7 +47,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const res = await fetch(`http://localhost:3000/polls/${params.id}/vote`, {
+			const res = await fetch(`${PUBLIC_API_URL}/polls/${params.id}/vote`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'

@@ -1,9 +1,9 @@
 import type { PageServerLoad } from './$types';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 export const load: PageServerLoad = async ({ fetch }) => {
     try {
-        // Assuming the backend is running on localhost:3000
-        const res = await fetch('http://localhost:3000/polls');
+        const res = await fetch(`${PUBLIC_API_URL}/polls`);
         
         if (!res.ok) {
             const errorText = await res.text();

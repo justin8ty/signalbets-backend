@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions } from './$types';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 export const actions: Actions = {
 	default: async ({ request, fetch }) => {
@@ -16,7 +17,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const res = await fetch('http://localhost:3000/polls', {
+			const res = await fetch(`${PUBLIC_API_URL}/polls`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
