@@ -1,6 +1,7 @@
 
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
+	import { writable } from 'svelte/store';
 	import { enhance } from '$app/forms';
 	import type { PageData, ActionData } from './$types';
 	import {
@@ -13,13 +14,14 @@
 		Tooltip,
 		Legend
 	} from 'chart.js';
+    import { PUBLIC_API_URL } from '$env/static/public';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let canvas: HTMLCanvasElement;
 	let chart: Chart;
 	let ws: WebSocket;
-    let connectionStatus = 'Connecting...';
+    const connectionStatus = writable('Connecting...');
 
 	onMount(() => {
 		Chart.register(
@@ -69,10 +71,13 @@
 		});
 
 		// WebSocket connection
-		ws = new WebSocket(`ws://localhost:3000/polls/${data.poll.id}/results/ws`);
+        const wsUrl = PUBLIC_API_URL.replace(/^http/, 'ws');
+		ws = new WebSocket(`${wsUrl}/polls/${data.poll.id}/results/ws`);
 
-		ws.onopen = () => {
-            connectionStatus = 'Live';
+		ws.onopen = async () => {
+            console.log('WebSocket connection opened!');
+            connectionStatus.set('Live');
+            await tick();
         };
 
 		ws.onmessage = (event) => {
@@ -85,11 +90,11 @@
 		};
 
         ws.onclose = () => {
-            connectionStatus = 'Connection closed. Refresh to reconnect.';
+            connectionStatus.set('Connection closed. Refresh to reconnect.');
         };
 
         ws.onerror = () => {
-            connectionStatus = 'Error connecting to live results.';
+            connectionStatus.set('Error connecting to live results.');
         };
 	});
 
@@ -137,8 +142,8 @@
             <div class="flex justify-between items-center mb-4">
 			    <h2 class="text-2xl font-bold">Live Results</h2>
                 <span class="text-sm font-medium px-3 py-1 rounded-full
-                    {connectionStatus === 'Live' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
-                    {connectionStatus}
+                    {$connectionStatus === 'Live' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                    {$connectionStatus}
                 </span>
             </div>
 			<div class="relative h-80">
