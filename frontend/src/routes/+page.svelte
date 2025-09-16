@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { Button } from '$lib/components/ui/button';
+	import * as Card from '$lib/components/ui/card';
 
 	let { data }: { data: PageData } = $props();
 </script>
@@ -7,9 +9,9 @@
 <div class="container mx-auto p-8">
 	<div class="flex justify-between items-center mb-8">
 		<h1 class="text-4xl font-bold text-gray-800">Active Polls</h1>
-		<a href="/create" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-300">
+		<Button href="/create" variant="default">
 			Create New Poll
-		</a>
+		</Button>
 	</div>
 
 	{#if data.error}
@@ -20,9 +22,15 @@
 	{:else if data.polls && data.polls.length > 0}
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 			{#each data.polls as poll (poll.id)}
-				<a href={`/polls/${poll.id}`} class="block p-6 bg-white border border-gray-200 rounded-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-					<h5 class="mb-2 text-xl font-bold tracking-tight text-gray-900">{poll.question}</h5>
-					<p class="font-normal text-gray-500 text-sm">Created: {new Date(poll.created_at).toLocaleString()}</p>
+				<a href={`/polls/${poll.id}`} class="block">
+					<Card.Root class="p-6 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+						<Card.Header>
+							<Card.Title class="text-xl">{poll.question}</Card.Title>
+						</Card.Header>
+						<Card.Description>
+							Created: {new Date(poll.created_at).toLocaleString()}
+						</Card.Description>
+					</Card.Root>
 				</a>
 			{/each}
 		</div>
